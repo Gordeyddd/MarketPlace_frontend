@@ -1,39 +1,31 @@
-import { Star } from 'lucide-react';
+import { Star, Image as ImageIcon } from 'lucide-react';
 import { Skeleton } from './ui/Skeleton';
-
-export interface ServiceCardProps {
-  id: string;
-  title: string;
-  price: number;
-  rating: number;
-  reviewsCount: number;
-  imageUrl: string;
-  provider: {
-    name: string;
-    avatarUrl: string;
-  };
-}
+import type { Service } from '../types/api';
 
 export function ServiceCard({
   title,
   price,
-  rating,
-  reviewsCount,
-  imageUrl,
   provider,
-}: ServiceCardProps) {
+  images,
+}: Service) {
+  const primaryImage = images.find(img => img.is_primary)?.image || images[0]?.image;
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col active:scale-95 transition-transform duration-200 cursor-pointer">
-      <div className="h-32 bg-slate-100 relative">
-        <img 
-          src={imageUrl} 
-          alt={title} 
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+      <div className="h-32 bg-slate-100 relative flex items-center justify-center overflow-hidden">
+        {primaryImage ? (
+          <img 
+            src={primaryImage} 
+            alt={title} 
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <ImageIcon className="w-8 h-8 text-slate-300" />
+        )}
         <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg text-[10px] font-bold text-slate-900 flex items-center gap-1">
           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-          {rating.toFixed(1)} <span className="text-slate-400 font-normal">({reviewsCount})</span>
+          {parseFloat(provider.rating).toFixed(1)} <span className="text-slate-400 font-normal">({provider.rating_count})</span>
         </div>
       </div>
       
@@ -43,15 +35,13 @@ export function ServiceCard({
         </div>
         
         <div className="mt-auto pt-2 flex items-center justify-between border-t border-slate-50">
-          <div className="flex items-center gap-2">
-            <img 
-              src={provider.avatarUrl} 
-              alt={provider.name} 
-              className="w-6 h-6 rounded-full bg-slate-200 object-cover"
-            />
-            <span className="text-xs text-slate-500 font-medium truncate max-w-[80px]">{provider.name}</span>
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="w-6 h-6 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase">
+              {provider.full_name.charAt(0)}
+            </div>
+            <span className="text-xs text-slate-500 font-medium truncate max-w-[80px]">{provider.full_name}</span>
           </div>
-          <span className="text-blue-600 font-bold text-sm whitespace-nowrap">от ${price}</span>
+          <span className="text-blue-600 font-bold text-sm whitespace-nowrap ml-2">от ${price}</span>
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import { MainLayout } from './components/layout/MainLayout';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
 import { ChatRoom } from './pages/ChatRoom';
+import { Login } from './pages/Login';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 const queryClient = new QueryClient({
@@ -25,7 +26,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<div className="p-4 flex h-screen items-center justify-center font-bold text-slate-400">Login Page</div>} />
+          <Route path="/login" element={<Login />} />
           
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />

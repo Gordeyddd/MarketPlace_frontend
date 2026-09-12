@@ -1,71 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ServiceCard, ServiceCardSkeleton, type ServiceCardProps } from '../components/ServiceCard';
+import { ServiceCard, ServiceCardSkeleton } from '../components/ServiceCard';
+import api from '../api/axios';
+import type { Category, Service, PaginatedResponse } from '../types/api';
 
-// Mock data fetchers
-const fetchCategories = async () => {
-  await new Promise(resolve => setTimeout(resolve, 800)); // simulate network latency
-  return [
-    { id: '1', name: 'Уборка', icon: '🧼' },
-    { id: '2', name: 'Ремонт', icon: '🛠️' },
-    { id: '3', name: 'Грузоперевозки', icon: '📦' },
-    { id: '4', name: 'Репетиторы', icon: '🎓' },
-    { id: '5', name: 'Красота', icon: '💅' },
-    { id: '6', name: 'IT услуги', icon: '💻' },
-    { id: '7', name: 'Фото', icon: '📸' },
-  ];
+const fetchCategories = async (): Promise<Category[]> => {
+  const { data } = await api.get('/api/v1/categories/');
+  return data;
 };
 
-const fetchPopularServices = async (): Promise<ServiceCardProps[]> => {
-  await new Promise(resolve => setTimeout(resolve, 1200));
-  return [
-    {
-      id: '1',
-      title: 'Генеральная уборка квартиры',
-      price: 45,
-      rating: 4.9,
-      reviewsCount: 124,
-      imageUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=400&auto=format&fit=crop',
-      provider: { name: 'Клининг Про', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=100&auto=format&fit=crop' }
-    },
-    {
-      id: '2',
-      title: 'Сборка мебели IKEA',
-      price: 25,
-      rating: 5.0,
-      reviewsCount: 82,
-      imageUrl: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?q=80&w=400&auto=format&fit=crop',
-      provider: { name: 'Мастер на час', avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=100&auto=format&fit=crop' }
-    },
-    {
-      id: '3',
-      title: 'Химчистка мягкой мебели',
-      price: 35,
-      rating: 4.8,
-      reviewsCount: 215,
-      imageUrl: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?q=80&w=400&auto=format&fit=crop',
-      provider: { name: 'Чистый Дом', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop' }
-    },
-    {
-      id: '4',
-      title: 'Ремонт стиральных машин',
-      price: 20,
-      rating: 4.7,
-      reviewsCount: 56,
-      imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=400&auto=format&fit=crop',
-      provider: { name: 'Сервис Центр', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop' }
-    }
-  ];
+const fetchPopularServices = async (): Promise<Service[]> => {
+  const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/', {
+    params: { limit: 10, ordering: '-created_at' }
+  });
+  return data.results;
 };
 
 export function Home() {
-  const { data: categories, isLoading: isLoadingCategories } = useQuery({
+  const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
   });
 
-  const { data: popularServices, isLoading: isLoadingServices } = useQuery({
+  const { data: popularServices, isLoading: isLoadingServices, error: servicesError } = useQuery({
     queryKey: ['popularServices'],
     queryFn: fetchPopularServices,
   });
@@ -107,14 +65,20 @@ export function Home() {
             Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="flex-shrink-0 w-[72px] h-[76px] bg-white rounded-2xl border border-slate-100 animate-pulse snap-center"></div>
             ))
+          ) : categoriesError ? (
+            <div className="text-sm text-red-500 p-2">Ошибка загрузки категорий</div>
+          ) : categories?.length === 0 ? (
+            <div className="text-sm text-slate-500 p-2">Нет доступных категорий</div>
           ) : (
             categories?.map((cat) => (
               <Link 
-                to={`/search?category=${cat.id}`} 
+                to={`/search?category=${cat.slug}`} 
                 key={cat.id} 
                 className="flex-shrink-0 bg-white w-[72px] p-3 rounded-2xl border border-slate-100 flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-transform snap-center"
               >
-                <div className="text-2xl leading-none">{cat.icon}</div>
+                <div className="text-2xl leading-none">
+                  {cat.icon ? <img src={cat.icon} alt={cat.name} className="w-8 h-8 object-contain" /> : '📁'}
+                </div>
                 <span className="text-[10px] font-bold text-slate-700 w-full text-center truncate">{cat.name}</span>
               </Link>
             ))
@@ -127,17 +91,25 @@ export function Home() {
           <h2 className="text-lg font-bold text-slate-900">Популярные услуги</h2>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-          {isLoadingServices ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <ServiceCardSkeleton key={i} />
-            ))
-          ) : (
-            popularServices?.map((service) => (
-              <ServiceCard key={service.id} {...service} />
-            ))
-          )}
-        </div>
+        {servicesError ? (
+          <div className="text-sm text-red-500 bg-red-50 p-4 rounded-xl">Ошибка загрузки услуг</div>
+        ) : popularServices?.length === 0 ? (
+          <div className="text-sm text-slate-500 bg-white border border-slate-100 p-8 text-center rounded-xl">
+            Пока нет доступных услуг
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            {isLoadingServices ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <ServiceCardSkeleton key={i} />
+              ))
+            ) : (
+              popularServices?.map((service) => (
+                <ServiceCard key={service.id} {...service} />
+              ))
+            )}
+          </div>
+        )}
       </div>
     </>
   );

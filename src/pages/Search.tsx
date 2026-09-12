@@ -5,73 +5,26 @@ import { Search as SearchIcon, SlidersHorizontal, X } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import { BottomSheet } from '../components/ui/BottomSheet';
 import { Filters } from '../components/Filters';
-import { ServiceCard, ServiceCardSkeleton, type ServiceCardProps } from '../components/ServiceCard';
+import { ServiceCard, ServiceCardSkeleton } from '../components/ServiceCard';
+import api from '../api/axios';
+import type { Service, PaginatedResponse } from '../types/api';
 
 const fetchSearchResults = async (
   q: string, 
   category: string | null, 
   minPrice: string | null, 
   maxPrice: string | null
-): Promise<ServiceCardProps[]> => {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  let results: ServiceCardProps[] = [
-    {
-      id: '1',
-      title: 'Генеральная уборка квартиры',
-      price: 45,
-      rating: 4.9,
-      reviewsCount: 124,
-      imageUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=400&auto=format&fit=crop',
-      provider: { name: 'Клининг Про', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=100&auto=format&fit=crop' }
-    },
-    {
-      id: '2',
-      title: 'Сборка мебели IKEA',
-      price: 25,
-      rating: 5.0,
-      reviewsCount: 82,
-      imageUrl: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?q=80&w=400&auto=format&fit=crop',
-      provider: { name: 'Мастер на час', avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=100&auto=format&fit=crop' }
-    },
-    {
-      id: '3',
-      title: 'Химчистка дивана',
-      price: 35,
-      rating: 4.8,
-      reviewsCount: 215,
-      imageUrl: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?q=80&w=400&auto=format&fit=crop',
-      provider: { name: 'Чистый Дом', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop' }
-    },
-    {
-      id: '4',
-      title: 'Муж на час',
-      price: 15,
-      rating: 4.6,
-      reviewsCount: 42,
-      imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=400&auto=format&fit=crop',
-      provider: { name: 'Иван И.', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop' }
+): Promise<Service[]> => {
+  const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/search/', {
+    params: {
+      q: q || undefined,
+      category: category || undefined,
+      price_min: minPrice || undefined,
+      price_max: maxPrice || undefined,
+      limit: 20
     }
-  ];
-
-  if (q) {
-    results = results.filter(r => r.title.toLowerCase().includes(q.toLowerCase()));
-  }
-  if (category) {
-    // Mock category filter mapping, since we don't have real category ids on mock objects
-    // we'll just return a subset
-    if (category === '1') results = [results[0], results[2]];
-    else if (category === '2') results = [results[1], results[3]];
-    else results = [];
-  }
-  if (minPrice) {
-    results = results.filter(r => r.price >= Number(minPrice));
-  }
-  if (maxPrice) {
-    results = results.filter(r => r.price <= Number(maxPrice));
-  }
-  
-  return results;
+  });
+  return data.results;
 };
 
 export function Search() {

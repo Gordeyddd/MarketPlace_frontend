@@ -1,13 +1,12 @@
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import api from '../api/axios';
+import type { Category } from '../types/api';
 
-const CATEGORIES = [
-  { id: '1', name: 'Уборка' },
-  { id: '2', name: 'Ремонт' },
-  { id: '3', name: 'Грузоперевозки' },
-  { id: '4', name: 'Репетиторы' },
-  { id: '5', name: 'Красота' },
-  { id: '6', name: 'IT услуги' },
-];
+const fetchCategories = async (): Promise<Category[]> => {
+  const { data } = await api.get('/api/v1/categories/');
+  return data;
+};
 
 interface FiltersProps {
   onClose: () => void;
@@ -15,6 +14,11 @@ interface FiltersProps {
 
 export function Filters({ onClose }: FiltersProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  const { data: categories, isLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  });
   
   const currentCategory = searchParams.get('category') || '';
   const currentMinPrice = searchParams.get('minPrice') || '';
@@ -66,18 +70,22 @@ export function Filters({ onClose }: FiltersProps) {
             />
             <span className="text-sm font-medium text-slate-700">Все категории</span>
           </label>
-          {CATEGORIES.map(cat => (
-            <label key={cat.id} className="flex items-center gap-3 cursor-pointer">
-              <input 
-                type="radio" 
-                name="category" 
-                value={cat.id} 
-                defaultChecked={currentCategory === cat.id}
-                className="w-5 h-5 text-blue-600 focus:ring-blue-500 border-slate-300"
-              />
-              <span className="text-sm font-medium text-slate-700">{cat.name}</span>
-            </label>
-          ))}
+          {isLoading ? (
+            <div className="text-sm text-slate-400">Загрузка категорий...</div>
+          ) : (
+            categories?.map(cat => (
+              <label key={cat.id} className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="category" 
+                  value={cat.slug} 
+                  defaultChecked={currentCategory === cat.slug}
+                  className="w-5 h-5 text-blue-600 focus:ring-blue-500 border-slate-300"
+                />
+                <span className="text-sm font-medium text-slate-700">{cat.name}</span>
+              </label>
+            ))
+          )}
         </div>
       </div>
 

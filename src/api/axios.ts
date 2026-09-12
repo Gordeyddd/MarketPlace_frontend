@@ -1,10 +1,14 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
+// Если переменная не задана, запросы пойдут на текущий домен (полезно при проксировании)
+const baseURL = import.meta.env.VITE_API_URL || '';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
 });
 
@@ -41,6 +45,7 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Если 401 и мы ещё не пытались обновить токен
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -60,13 +65,20 @@ api.interceptors.response.use(
 
       const refreshToken = useAuthStore.getState().refreshToken;
 
+      if (!refreshToken) {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
       try {
-        const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
-          refreshToken,
+        // SimpleJWT использует ключ 'refresh' и возвращает 'access' (и иногда 'refresh')
+        const response = await axios.post(`${baseURL}/api/token/refresh/`, {
+          refresh: refreshToken,
         });
 
-        const newAccessToken = response.data.accessToken;
-        const newRefreshToken = response.data.refreshToken;
+        const newAccessToken = response.data.access;
+        const newRefreshToken = response.data.refresh || refreshToken;
 
         useAuthStore.getState().setTokens(newAccessToken, newRefreshToken);
 
