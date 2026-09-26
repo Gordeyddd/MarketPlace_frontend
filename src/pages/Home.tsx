@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ServiceCard, ServiceCardSkeleton } from '../components/ServiceCard';
+import { ServiceCard, ServiceCardSkeleton, getMediaUrl } from '../components/ServiceCard';
 import api from '../api/axios';
-import type { Category, Service, PaginatedResponse } from '../types/api';
+import type { Category, Service } from '../types/api';
 
 const fetchCategories = async (): Promise<Category[]> => {
   const { data } = await api.get('/api/v1/categories/');
@@ -18,12 +18,22 @@ const fetchPopularServices = async (): Promise<Service[]> => {
 };
 
 export function Home() {
-  const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery({
+  const { 
+    data: categories, 
+    isLoading: isLoadingCategories, 
+    error: categoriesError,
+    refetch: refetchCategories 
+  } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
   });
 
-  const { data: popularServices, isLoading: isLoadingServices, error: servicesError } = useQuery({
+  const { 
+    data: popularServices, 
+    isLoading: isLoadingServices, 
+    error: servicesError,
+    refetch: refetchServices 
+  } = useQuery({
     queryKey: ['popularServices'],
     queryFn: fetchPopularServices,
   });
@@ -66,22 +76,44 @@ export function Home() {
               <div key={i} className="flex-shrink-0 w-[72px] h-[76px] bg-white rounded-2xl border border-slate-100 animate-pulse snap-center"></div>
             ))
           ) : categoriesError ? (
-            <div className="text-sm text-red-500 p-2">Ошибка загрузки категорий</div>
-          ) : categories?.length === 0 ? (
+            <div className="text-xs text-red-500 bg-red-50 p-3 rounded-xl flex items-center gap-2">
+              <span>Ошибка загрузки категорий</span>
+              <button 
+                onClick={() => refetchCategories()} 
+                className="underline font-bold text-blue-600 hover:text-blue-800"
+              >
+                Повторить
+              </button>
+            </div>
+          ) : !categories || categories.length === 0 ? (
             <div className="text-sm text-slate-500 p-2">Нет доступных категорий</div>
           ) : (
-            categories?.map((cat) => (
-              <Link 
-                to={`/search?category=${cat.slug}`} 
-                key={cat.id} 
-                className="flex-shrink-0 bg-white w-[72px] p-3 rounded-2xl border border-slate-100 flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-transform snap-center"
-              >
-                <div className="text-2xl leading-none">
-                  {cat.icon ? <img src={cat.icon} alt={cat.name} className="w-8 h-8 object-contain" /> : '📁'}
-                </div>
-                <span className="text-[10px] font-bold text-slate-700 w-full text-center truncate">{cat.name}</span>
-              </Link>
-            ))
+            categories.map((cat) => {
+              const iconUrl = getMediaUrl(cat.icon);
+              return (
+                <Link 
+                  to={`/search?category=${cat.slug}`} 
+                  key={cat.id} 
+                  className="flex-shrink-0 bg-white w-[72px] p-3 rounded-2xl border border-slate-100 flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-transform snap-center"
+                >
+                  <div className="text-2xl leading-none flex items-center justify-center h-8">
+                    {iconUrl ? (
+                      <img 
+                        src={iconUrl} 
+                        alt={cat.name} 
+                        className="w-8 h-8 object-contain" 
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      '📁'
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 w-full text-center truncate">{cat.name}</span>
+                </Link>
+              );
+            })
           )}
         </div>
       </div>
@@ -92,8 +124,16 @@ export function Home() {
         </div>
         
         {servicesError ? (
-          <div className="text-sm text-red-500 bg-red-50 p-4 rounded-xl">Ошибка загрузки услуг</div>
-        ) : popularServices?.length === 0 ? (
+          <div className="text-xs text-red-500 bg-red-50 p-4 rounded-xl flex items-center justify-between">
+            <span>Ошибка загрузки услуг. Проверьте соединение с бэкендом.</span>
+            <button 
+              onClick={() => refetchServices()} 
+              className="text-xs text-blue-600 font-bold underline hover:text-blue-800 ml-2"
+            >
+              Повторить
+            </button>
+          </div>
+        ) : !popularServices || popularServices.length === 0 ? (
           <div className="text-sm text-slate-500 bg-white border border-slate-100 p-8 text-center rounded-xl">
             Пока нет доступных услуг
           </div>
@@ -104,7 +144,7 @@ export function Home() {
                 <ServiceCardSkeleton key={i} />
               ))
             ) : (
-              popularServices?.map((service) => (
+              popularServices.map((service) => (
                 <ServiceCard key={service.id} {...service} />
               ))
             )}
@@ -114,4 +154,3 @@ export function Home() {
     </>
   );
 }
-

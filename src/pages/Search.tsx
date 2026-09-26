@@ -15,14 +15,22 @@ const fetchSearchResults = async (
   minPrice: string | null, 
   maxPrice: string | null
 ): Promise<Service[]> => {
-  const params = {
-    q: q || undefined,
-    search: q || undefined,
-    category: category || undefined,
-    price_min: minPrice || undefined,
-    price_max: maxPrice || undefined,
+  const params: Record<string, string | number> = {
     limit: 20
   };
+  if (q) {
+    params.q = q;
+    params.search = q;
+  }
+  if (category) {
+    params.category = category;
+  }
+  if (minPrice) {
+    params.price_min = minPrice;
+  }
+  if (maxPrice) {
+    params.price_max = maxPrice;
+  }
 
   try {
     const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/search/', { params });
@@ -64,10 +72,10 @@ export function Search() {
     setSearchParams(params, { replace: true });
   };
 
-  const { data: results, isLoading, isFetching } = useQuery({
+  const { data: results, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ['search', debouncedQuery, category, minPrice, maxPrice],
     queryFn: () => fetchSearchResults(debouncedQuery, category, minPrice, maxPrice),
-    placeholderData: (previousData) => previousData, // keepPreviousData approach in v5
+    placeholderData: (previousData) => previousData,
   });
 
   const activeFiltersCount = [category, minPrice, maxPrice].filter(Boolean).length;
@@ -118,24 +126,36 @@ export function Search() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-          {isLoading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <ServiceCardSkeleton key={i} />
-            ))
-          ) : (
-            results?.map((service) => (
-              <ServiceCard key={service.id} {...service} />
-            ))
-          )}
-          {!isLoading && results?.length === 0 && (
-            <div className="col-span-full py-12 flex flex-col items-center justify-center text-center">
-              <div className="text-4xl mb-4">🔍</div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Ничего не найдено</h3>
-              <p className="text-sm text-slate-500">Попробуйте изменить запрос или фильтры</p>
-            </div>
-          )}
-        </div>
+        {error ? (
+          <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-center justify-between">
+            <span>Ошибка при загрузке результатов поиска</span>
+            <button 
+              onClick={() => refetch()} 
+              className="underline font-bold text-blue-600 hover:text-blue-800 ml-2"
+            >
+              Повторить
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <ServiceCardSkeleton key={i} />
+              ))
+            ) : (
+              results?.map((service) => (
+                <ServiceCard key={service.id} {...service} />
+              ))
+            )}
+            {!isLoading && results?.length === 0 && (
+              <div className="col-span-full py-12 flex flex-col items-center justify-center text-center">
+                <div className="text-4xl mb-4">🔍</div>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Ничего не найдено</h3>
+                <p className="text-sm text-slate-500">Попробуйте изменить запрос или фильтры</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <BottomSheet 

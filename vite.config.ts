@@ -36,17 +36,20 @@ export default defineConfig(() => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/api\.serviceplace\.com\/.*/i,
+              urlPattern: /^https:\/\/stubborn-utilize-stunning\.ngrok-free\.dev\/api\/.*/i,
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'api-cache',
                 expiration: {
                   maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24 * 7 // 1 week
+                  maxAgeSeconds: 60 * 60 * 24 // 1 day
                 },
-                networkTimeoutSeconds: 10
+                networkTimeoutSeconds: 5
               }
             }
           ]
