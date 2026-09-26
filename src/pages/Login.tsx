@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../api/axios';
@@ -22,7 +22,7 @@ export function Login() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  const requestOtp = async (e: React.FormEvent) => {
+  const requestOtp = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
@@ -45,7 +45,7 @@ export function Login() {
     }
   };
 
-  const verifyOtp = async (e: React.FormEvent) => {
+  const verifyOtp = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');

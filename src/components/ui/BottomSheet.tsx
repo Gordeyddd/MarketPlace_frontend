@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 
@@ -6,7 +6,7 @@ interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetProps) {

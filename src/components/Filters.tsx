@@ -1,3 +1,4 @@
+import type { FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api/axios';
@@ -5,7 +6,7 @@ import type { Category } from '../types/api';
 
 const fetchCategories = async (): Promise<Category[]> => {
   const { data } = await api.get('/api/v1/categories/');
-  return data;
+  return Array.isArray(data) ? data : (data?.results || []);
 };
 
 interface FiltersProps {
@@ -24,7 +25,7 @@ export function Filters({ onClose }: FiltersProps) {
   const currentMinPrice = searchParams.get('minPrice') || '';
   const currentMaxPrice = searchParams.get('maxPrice') || '';
 
-  const handleApply = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleApply = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const category = formData.get('category') as string;

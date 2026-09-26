@@ -2,12 +2,12 @@ import { Star, Image as ImageIcon } from 'lucide-react';
 import { Skeleton } from './ui/Skeleton';
 import type { Service } from '../types/api';
 
-export function ServiceCard({
-  title,
-  price,
-  provider,
-  images,
-}: Service) {
+export type ServiceCardProps = Service & {
+  key?: string | number | null;
+};
+
+export function ServiceCard(props: ServiceCardProps) {
+  const { title, price, provider, images } = props;
   const primaryImage = images.find(img => img.is_primary)?.image || images[0]?.image;
 
   return (

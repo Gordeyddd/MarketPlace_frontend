@@ -1,19 +1,30 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
-// Если переменная не задана, запросы пойдут на текущий домен (полезно при проксировании)
-const baseURL = import.meta.env.VITE_API_URL || '';
+// Нормализуем baseURL: удаляем завершающий слеш, чтобы пути вида /api/v1/... никогда не приводили к double-slash (//)
+const rawBaseURL = import.meta.env.VITE_API_URL || '';
+const baseURL = rawBaseURL.replace(/\/+$/, '');
 
 const api = axios.create({
   baseURL,
   headers: {
-    'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true',
   },
 });
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Гарантируем Django APPEND_SLASH совместимость:
+    // если URL не оканчивается на '/', не содержит '?' и не является статическим файлом, добавляем слеш.
+    // Это исключает 301 Redirect со стороны Django, который ломает CORS в браузерах.
+    if (config.url && !config.url.endsWith('/') && !config.url.includes('?') && !config.url.includes('.')) {
+      config.url = `${config.url}/`;
+    }
+
+    if (config.headers) {
+      config.headers['ngrok-skip-browser-warning'] = 'true';
+    }
+
     const token = useAuthStore.getState().accessToken;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -72,10 +83,18 @@ api.interceptors.response.use(
       }
 
       try {
-        // SimpleJWT использует ключ 'refresh' и возвращает 'access' (и иногда 'refresh')
-        const response = await axios.post(`${baseURL}/api/token/refresh/`, {
-          refresh: refreshToken,
-        });
+        const refreshUrl = baseURL ? `${baseURL}/api/token/refresh/` : '/api/token/refresh/';
+        // Обязательно передаем ngrok-skip-browser-warning и Content-Type, иначе ngrok отдаст HTML-заглушку без CORS
+        const response = await axios.post(
+          refreshUrl,
+          { refresh: refreshToken },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true',
+            },
+          }
+        );
 
         const newAccessToken = response.data.access;
         const newRefreshToken = response.data.refresh || refreshToken;

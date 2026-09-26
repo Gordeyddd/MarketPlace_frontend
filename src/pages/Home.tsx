@@ -7,14 +7,14 @@ import type { Category, Service, PaginatedResponse } from '../types/api';
 
 const fetchCategories = async (): Promise<Category[]> => {
   const { data } = await api.get('/api/v1/categories/');
-  return data;
+  return Array.isArray(data) ? data : (data?.results || []);
 };
 
 const fetchPopularServices = async (): Promise<Service[]> => {
-  const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/', {
+  const { data } = await api.get('/api/v1/services/', {
     params: { limit: 10, ordering: '-created_at' }
   });
-  return data.results;
+  return Array.isArray(data) ? data : (data?.results || []);
 };
 
 export function Home() {

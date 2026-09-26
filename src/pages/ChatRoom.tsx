@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { ChevronLeft, Send, Phone, MoreVertical } from 'lucide-react';
@@ -61,7 +61,7 @@ export function ChatRoom() {
     scrollToBottom();
   }, [data, realtimeMessages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = (e: FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
     

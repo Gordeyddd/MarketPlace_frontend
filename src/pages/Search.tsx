@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search as SearchIcon, SlidersHorizontal, X } from 'lucide-react';
@@ -15,16 +15,25 @@ const fetchSearchResults = async (
   minPrice: string | null, 
   maxPrice: string | null
 ): Promise<Service[]> => {
-  const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/search/', {
-    params: {
-      q: q || undefined,
-      category: category || undefined,
-      price_min: minPrice || undefined,
-      price_max: maxPrice || undefined,
-      limit: 20
+  const params = {
+    q: q || undefined,
+    search: q || undefined,
+    category: category || undefined,
+    price_min: minPrice || undefined,
+    price_max: maxPrice || undefined,
+    limit: 20
+  };
+
+  try {
+    const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/search/', { params });
+    return data.results || (Array.isArray(data) ? data : []);
+  } catch (err: any) {
+    if (err.response?.status === 404) {
+      const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/', { params });
+      return data.results || (Array.isArray(data) ? data : []);
     }
-  });
-  return data.results;
+    throw err;
+  }
 };
 
 export function Search() {
@@ -37,7 +46,7 @@ export function Search() {
   const minPrice = searchParams.get('minPrice');
   const maxPrice = searchParams.get('maxPrice');
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
     const params = new URLSearchParams(searchParams);
     if (e.target.value) {
