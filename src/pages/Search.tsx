@@ -18,10 +18,6 @@ const fetchSearchResults = async (
   const params: Record<string, string | number> = {
     limit: 20
   };
-  if (q) {
-    params.q = q;
-    params.search = q;
-  }
   if (category) {
     params.category = category;
   }
@@ -32,16 +28,16 @@ const fetchSearchResults = async (
     params.price_max = maxPrice;
   }
 
-  try {
+  // Если указана поисковая строка, используем search endpoint с обязательным параметром q
+  if (q && q.trim().length > 0) {
+    params.q = q.trim();
     const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/search/', { params });
     return data.results || (Array.isArray(data) ? data : []);
-  } catch (err: any) {
-    if (err.response?.status === 404) {
-      const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/', { params });
-      return data.results || (Array.isArray(data) ? data : []);
-    }
-    throw err;
   }
+
+  // Иначе получаем общий список услуг с фильтрами
+  const { data } = await api.get<PaginatedResponse<Service>>('/api/v1/services/', { params });
+  return data.results || (Array.isArray(data) ? data : []);
 };
 
 export function Search() {
