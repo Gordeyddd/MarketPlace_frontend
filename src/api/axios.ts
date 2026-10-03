@@ -1,19 +1,13 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
-// URL бэкенда по умолчанию.
-// Если в Vercel для Production окружения не была прописана VITE_API_URL,
-// приложение автоматически обращается напрямую к реальному бэкенду ngrok,
-// предотвращая ошибки пустого baseURL и сбои Vercel rewrites.
+// URL бэкенда по умолчанию
 const DEFAULT_BACKEND_URL = 'https://stubborn-utilize-stunning.ngrok-free.dev';
 const rawBaseURL = import.meta.env.VITE_API_URL || DEFAULT_BACKEND_URL;
 export const baseURL = rawBaseURL.replace(/\/+$/, '');
 
 const api = axios.create({
   baseURL,
-  headers: {
-    'ngrok-skip-browser-warning': 'true',
-  },
 });
 
 api.interceptors.request.use(
@@ -23,10 +17,6 @@ api.interceptors.request.use(
     // Это предотвращает 301 Redirect со стороны Django, который сбрасывает CORS в браузерах.
     if (config.url && !config.url.endsWith('/') && !config.url.includes('?') && !config.url.includes('.')) {
       config.url = `${config.url}/`;
-    }
-
-    if (config.headers) {
-      config.headers['ngrok-skip-browser-warning'] = 'true';
     }
 
     const token = useAuthStore.getState().accessToken;
@@ -107,7 +97,6 @@ api.interceptors.response.use(
           {
             headers: {
               'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': 'true',
             },
           }
         );
