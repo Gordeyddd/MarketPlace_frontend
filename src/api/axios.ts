@@ -8,19 +8,27 @@ export const baseURL = rawBaseURL.replace(/\/+$/, '');
 
 const api = axios.create({
   baseURL,
+  headers: {
+    'ngrok-skip-browser-warning': 'true',
+  },
 });
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Гарантируем Django APPEND_SLASH совместимость:
     // если URL не оканчивается на '/', не содержит '?' и не является файлом со схемой, добавляем слеш.
-    // Это предотвращает 301 Redirect со стороны Django, который сбрасывает CORS в браузерах.
     if (config.url && !config.url.endsWith('/') && !config.url.includes('?') && !config.url.includes('.')) {
       config.url = `${config.url}/`;
     }
 
+    if (!config.headers) {
+      config.headers = new axios.AxiosHeaders();
+    }
+    // Передаем заголовок ngrok во все исходящие HTTP-запросы (GET, POST, PUT, DELETE и др.)
+    config.headers['ngrok-skip-browser-warning'] = 'true';
+
     const token = useAuthStore.getState().accessToken;
-    if (token && config.headers) {
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -79,9 +87,7 @@ api.interceptors.response.use(
         useAuthStore.getState().logout();
         isRefreshing = false;
 
-        // Для GET запросов (публичный просмотр каталога, категорий, услуг)
-        // повторяем запрос как гость без невалидного заголовка Authorization.
-        // Это предотвращает падение главной страницы в ошибку при устаревших токенах в браузере.
+        // Для GET запросов повторяем запрос как гость без невалидного заголовка Authorization
         if (originalRequest.method?.toLowerCase() === 'get' && originalRequest.headers) {
           delete originalRequest.headers.Authorization;
           return api(originalRequest);
@@ -97,6 +103,7 @@ api.interceptors.response.use(
           {
             headers: {
               'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true',
             },
           }
         );
@@ -116,7 +123,6 @@ api.interceptors.response.use(
         processQueue(refreshError as AxiosError, null);
         useAuthStore.getState().logout();
 
-        // Если refresh token отклонен (истек), очищаем сессию и пробуем загрузить GET-запрос публично
         if (originalRequest.method?.toLowerCase() === 'get' && originalRequest.headers) {
           delete originalRequest.headers.Authorization;
           return api(originalRequest);
