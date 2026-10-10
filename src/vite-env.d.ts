@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
+  readonly VITE_GOOGLE_CLIENT_ID?: string;
   readonly GEMINI_API_KEY?: string;
   readonly APP_URL?: string;
 }

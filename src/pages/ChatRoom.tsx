@@ -1,25 +1,15 @@
 import { useState, useRef, useEffect, useCallback, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { ChevronLeft, Send, Phone, MoreVertical } from 'lucide-react';
+import { ChevronLeft, Send, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useChatWebSocket, type ChatMessage } from '../hooks/useChatWebSocket';
 
-// Mock data fetcher для истории сообщений (пагинация)
-const fetchChatHistory = async ({ pageParam = 0 }) => {
-  await new Promise(res => setTimeout(res, 600)); // Имитация задержки сети
-  
-  // Отдаем фейковые данные порциями
-  const mockMessages: ChatMessage[] = [
-    { id: `old-${pageParam}-1`, text: 'Здравствуйте! Я по поводу сборки шкафа.', senderId: 'me', createdAt: new Date(Date.now() - 3600000 * (pageParam + 1)).toISOString() },
-    { id: `old-${pageParam}-2`, text: 'Добрый день! Готов приехать сегодня вечером. Инструменты свои.', senderId: 'partner', createdAt: new Date(Date.now() - 3500000 * (pageParam + 1)).toISOString() },
-    { id: `old-${pageParam}-3`, text: 'Отлично, какая будет цена?', senderId: 'me', createdAt: new Date(Date.now() - 3400000 * (pageParam + 1)).toISOString() },
-    { id: `old-${pageParam}-4`, text: 'Около $25, займет пару часов.', senderId: 'partner', createdAt: new Date(Date.now() - 3300000 * (pageParam + 1)).toISOString() },
-  ];
-
+// Честный фетчер истории сообщений без моковых пользователей и диалогов
+const fetchChatHistory = async () => {
   return {
-    messages: mockMessages,
-    nextPage: pageParam < 2 ? pageParam + 1 : undefined, // Всего 3 страницы для теста
+    messages: [] as ChatMessage[],
+    nextPage: undefined,
   };
 };
 
@@ -65,7 +55,6 @@ export function ChatRoom() {
     e.preventDefault();
     if (!newMessage.trim()) return;
     
-    // Оптимистичное обновление UI
     const sentMsg: ChatMessage = {
       id: Date.now().toString(),
       text: newMessage,
@@ -76,19 +65,8 @@ export function ChatRoom() {
     setRealtimeMessages(prev => [...prev, sentMsg]);
     sendMessage(newMessage);
     setNewMessage('');
-
-    // Имитация ответа собеседника (т.к. у нас нет настоящего бекенда)
-    setTimeout(() => {
-      handleNewMessage({
-        id: (Date.now() + 1).toString(),
-        text: 'Понял вас, скоро буду!',
-        senderId: 'partner',
-        createdAt: new Date().toISOString(),
-      });
-    }, 1500);
   };
 
-  // Комбинируем и сортируем сообщения (переворачиваем страницы из React Query)
   const historyMessages = data?.pages.slice().reverse().flatMap(page => page.messages) || [];
   const allMessages = [...historyMessages, ...realtimeMessages];
 
@@ -104,29 +82,16 @@ export function ChatRoom() {
             <ChevronLeft size={24} />
           </button>
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <img 
-                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=100&auto=format&fit=crop" 
-                alt="Аватар"
-                className="w-10 h-10 rounded-full object-cover bg-slate-200" 
-              />
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+              <MessageSquare size={18} />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900 leading-tight">Александр М.</h2>
+              <h2 className="text-sm font-bold text-slate-900 leading-tight">Чат #{id}</h2>
               <p className="text-[10px] font-semibold text-blue-600 flex items-center gap-1">
                 {isConnected ? 'В сети' : 'Подключение...'}
               </p>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
-            <Phone size={20} />
-          </button>
-          <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
-            <MoreVertical size={20} />
-          </button>
         </div>
       </header>
 
@@ -142,8 +107,16 @@ export function ChatRoom() {
           </button>
         )}
         
-        {isLoading && !historyMessages.length ? (
-          <div className="flex-1 flex items-center justify-center text-slate-400 text-sm font-medium">Загрузка чата...</div>
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center text-slate-400 text-sm font-medium">Загрузка...</div>
+        ) : allMessages.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-400">
+            <MessageSquare className="w-10 h-10 text-slate-300 mb-2" />
+            <p className="text-sm font-medium text-slate-600">Сообщений пока нет</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs">
+              Отправьте первое сообщение, чтобы начать диалог.
+            </p>
+          </div>
         ) : (
           allMessages.map(msg => (
             <div 
@@ -167,7 +140,6 @@ export function ChatRoom() {
             </div>
           ))
         )}
-        {/* Dummy div for scroll to bottom */}
         <div ref={messagesEndRef} className="h-1" />
       </div>
 

@@ -5,12 +5,15 @@
 
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { MainLayout } from './components/layout/MainLayout';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
 import { ChatRoom } from './pages/ChatRoom';
 import { Login } from './pages/Login';
+import { Profile } from './pages/Profile';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { MessageSquare, Search as SearchIcon } from 'lucide-react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,49 +24,64 @@ const queryClient = new QueryClient({
   },
 });
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/search" element={<Search />} />
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
             
-            {/* Защищенные роуты */}
-            <Route path="/chats" element={
-              <ProtectedRoute>
-                <div className="p-4 flex flex-col gap-4">
-                  <h1 className="text-xl font-bold text-slate-900">Мои чаты</h1>
-                  <Link to="/chats/123" className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 active:scale-95 transition-transform cursor-pointer">
-                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=100&auto=format&fit=crop" className="w-12 h-12 rounded-full object-cover" alt="Avatar"/>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-900 text-sm">Александр М.</h3>
-                      <p className="text-xs text-slate-500 truncate">Около $25, займет пару часов.</p>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/search" element={<Search />} />
+              
+              {/* Защищенные роуты */}
+              <Route path="/chats" element={
+                <ProtectedRoute>
+                  <div className="p-4 flex flex-col gap-4 max-w-xl mx-auto w-full">
+                    <h1 className="text-xl font-bold text-slate-900">Мои чаты</h1>
+                    {/* Честное empty state без фиктивных пользователей */}
+                    <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center mt-4">
+                      <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
+                        <MessageSquare className="w-7 h-7" />
+                      </div>
+                      <h3 className="text-base font-bold text-slate-900 mb-1">У вас пока нет активных диалогов</h3>
+                      <p className="text-xs text-slate-500 max-w-xs mb-6">
+                        Диалоги с мастерами или заказчиками появятся здесь после обсуждения заказа.
+                      </p>
+                      <Link 
+                        to="/search" 
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+                      >
+                        <SearchIcon className="w-4 h-4" />
+                        <span>Найти услуги</span>
+                      </Link>
                     </div>
-                  </Link>
-                </div>
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
+                  </div>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+            </Route>
+
+            {/* ChatRoom вынесен за MainLayout */}
+            <Route path="/chats/:id" element={
               <ProtectedRoute>
-                <div className="p-4 font-bold text-slate-700">Профиль</div>
+                <ChatRoom />
               </ProtectedRoute>
             } />
-          </Route>
 
-          {/* ChatRoom вынесен за MainLayout, чтобы на мобилках занимать весь экран без таббара */}
-          <Route path="/chats/:id" element={
-            <ProtectedRoute>
-              <ChatRoom />
-            </ProtectedRoute>
-          } />
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 }
